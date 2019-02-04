@@ -1,6 +1,8 @@
 #include	<stdio.h>
 #include	<allegro5/allegro.h>
 #include	<allegro5/allegro_primitives.h>
+#include	<allegro5/allegro_font.h>
+#include	<allegro5/allegro_ttf.h>
 #include	"block.h"
 
 ALLEGRO_COLOR	black;
@@ -18,6 +20,10 @@ int main(){
 	}
 	if(!al_install_keyboard()){
 		fprintf(stderr, "Allegro keyboard init failed.\n");
+		return -1;
+	}
+	if(!al_init_font_addon() || !al_init_ttf_addon()){
+		fprintf(stderr, "Allegro font addon init failed.\n");
 		return -1;
 	}
 
@@ -53,6 +59,9 @@ int main(){
 	al_start_timer(flip);
 	al_start_timer(step);
 
+	ALLEGRO_FONT* iosevka = al_load_ttf_font("iosevka-cc-semibold.ttf", 32, 0);
+	int score = 0;
+
 	cur = create_block();
 	next = create_block();
 	draw_block_bitmap(cur_bitmap, cur, dis);
@@ -77,6 +86,8 @@ int main(){
 							al_draw_filled_rectangle(20 * j, 20 * i, 20 * j + 20, 20 * i + 20, map_color[i][j]);
 					}
 				}
+				/* draw score */
+				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 0, 0, 0, "%d", score);
 
 				al_flip_display();
 			}
@@ -98,6 +109,27 @@ int main(){
 								map[cur.line + i][cur.col + j] = true;
 								map_color[cur.line + i][cur.col + j] = color_scheme[cur.type];
 							}
+						}
+					}
+					for(int i = 0; i < 20; i++){
+						bool hole = false;
+						for(int j = 0; j < 10; j++){
+							if(!map[i][j])
+								hole = true;
+						}
+						/* clear line */
+						if(!hole){
+							for(int k = i; k > 0; k--){
+								for(int l = 0; l < 10; l++){
+									map[k][l] = map[k - 1][l];
+									map_color[k][l] = map_color[k - 1][l];
+								}
+							}
+							for(int l = 0; l < 10; l++){
+								map[0][l] = false;
+								map_color[0][l] = black;
+							}
+							score++;
 						}
 					}
 					/* create new dropping block */
@@ -215,7 +247,10 @@ int main(){
 	al_destroy_timer(flip);
 	al_destroy_timer(step);
 	al_destroy_event_queue(eq);
+	al_destroy_bitmap(cur_bitmap);
 	al_destroy_display(dis);
+	al_shutdown_font_addon();
+	al_shutdown_ttf_addon();
 	al_shutdown_primitives_addon();
 	al_uninstall_keyboard();
 

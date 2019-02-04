@@ -43,7 +43,7 @@ int main(){
 
 	ALLEGRO_TIMER* flip = al_create_timer(1.0 / 60.0);
 	ALLEGRO_TIMER* step = al_create_timer(1.0);
-	
+
 	ALLEGRO_EVENT_QUEUE* eq = al_create_event_queue();
 	al_register_event_source(eq, al_get_display_event_source(dis));
 	al_register_event_source(eq, al_get_timer_event_source(flip));
@@ -108,18 +108,70 @@ int main(){
 			}
 			else if(e.type == ALLEGRO_EVENT_KEY_DOWN){
 				bool hit = false;
+				int hitCheck[16];
+				int count = 0;
+				int correct_line = 0;
+				int correct_col = 0;
 				switch(e.keyboard.keycode){
 					case ALLEGRO_KEY_W:
 					case ALLEGRO_KEY_UP:
 						cur.dir = (cur.dir + 1) % 4;
 						for(int i = 0; i < 4; i++){
 							for(int j = 0; j < 4; j++){
-								if(form[cur.type][cur.dir][i * 4 + j] && (cur.col + j < 0 || cur.col + j >= 10 || cur.line + i >= 20))
+								if(form[cur.type][cur.dir][i * 4 + j] && (cur.col + j < 0 || cur.col + j >= 10 || cur.line + i >= 20 || map[cur.line + i][cur.col + j])){
 									hit = true;
+									hitCheck[count++] = i * 4 + j;
+								}
 							}
 						}
-						if(hit)
-							printf("need to correct\n");
+						if(hit){
+							/* hit! check correction */
+							printf("hit\n");
+							if(cur.type != I){
+								for(int i = 0; i < count; i++){
+									if(hitCheck[i] == 0 || hitCheck[i] == 4 || hitCheck[i] == 8)
+										correct_col = 1;
+									else if(hitCheck[i] == 2 || hitCheck[i] == 6 || hitCheck[i] == 10)
+										correct_col = -1;
+									else if(hitCheck[i] == 0 || hitCheck[i] == 1 || hitCheck[i] == 2)
+										correct_line = 1;
+									else if(hitCheck[i] == 8 || hitCheck[i] == 9 || hitCheck[i] == 10)
+										correct_line = -1;
+								}
+							}
+							else{
+								for(int i = 0; i < count; i++){
+									if(hitCheck[i] == 0 || hitCheck[i] == 4 || hitCheck[i] == 8 || hitCheck[i] == 12)
+										correct_col = 1;
+									else if(hitCheck[i] == 3 || hitCheck[i] == 7 || hitCheck[i] == 11 || hitCheck[i] == 15)
+										correct_col = -1;
+									else if(hitCheck[i] == 0 || hitCheck[i] == 1 || hitCheck[i] == 2 || hitCheck[i] == 3)
+										correct_line = 1;
+									else if(hitCheck[i] == 12 || hitCheck[i] == 13 || hitCheck[i] == 14 || hitCheck[i] == 15)
+										correct_line = -1;
+								}
+							}
+							/* test after apply correction */
+							hit = false;
+							for(int i = 0; i < 4; i++){
+								for(int j = 0; j < 4; j++){
+									if(form[cur.type][cur.dir][i * 4 + j] && (cur.col + correct_col + j < 0 || cur.col + correct_col + j >= 10 || cur.line + correct_line + i >= 20 || map[cur.line + correct_line + i][cur.col + correct_col + j])){
+										hit = true;
+									}
+								}
+							}
+							/* result: still hit -> cancel rotate dir *cur.col + correct_col + j */
+							if(hit){
+								cur.dir = (cur.dir + 4 - 1) % 4;
+								printf("can't correct\n");
+							}
+							/* result: won't hit after correcting -> apply correction */
+							else{
+								cur.col += correct_col;
+								cur.line += correct_line;
+								printf("correct!\n");
+							}
+						}
 						draw_block_bitmap(cur_bitmap, cur, dis);
 						break;
 					case ALLEGRO_KEY_A:

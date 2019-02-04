@@ -42,7 +42,7 @@ int main(){
 			map_color[i][j] = black;
 	}
 
-	Block cur, next;
+	Block cur, next, predict;
 	ALLEGRO_BITMAP* cur_bitmap = al_create_bitmap(80, 80);
 
 	ALLEGRO_DISPLAY* dis = al_create_display(360, 400);
@@ -63,7 +63,10 @@ int main(){
 	int score = 0;
 	char scoreString[1024] = "0";
 
+	bool movementLock = false;		// to prevent moving and rotating after instant drop
+
 	cur = create_block();
+	predict = create_predict(cur, map);
 	next = create_block();
 	draw_block_bitmap(cur_bitmap, cur, dis);
 
@@ -82,6 +85,14 @@ int main(){
 					al_draw_line(20 * i, 0, 20 * i, 400, al_map_rgb(60, 60, 60), 2);
 				for(int j = 0; j < 21; j++)
 					al_draw_line(0, 20 * j, 200, 20 * j, al_map_rgb(60, 60, 60), 2);
+
+				/* draw predict block */
+				for(int i = 0; i < 4; i++){
+					for(int j = 0; j < 4; j++){
+						if(form[predict.type][predict.dir][i * 4 + j])
+							al_draw_filled_rectangle((predict.col + j) * 20, (predict.line + i) * 20, (predict.col + j + 1) * 20, (predict.line + i + 1) * 20, al_map_rgb(80, 80, 80));
+					}
+				}
 				
 				/* draw current block */
 				al_draw_bitmap(cur_bitmap, cur.col * 20, cur.line * 20, 0);
@@ -100,6 +111,8 @@ int main(){
 				al_flip_display();
 			}
 			else if(e.type == ALLEGRO_EVENT_TIMER && e.timer.source == step){
+				movementLock = false;
+				printf("lock off\n");
 				bool hit = false;
 				for(int i = 0; i < 4; i++){
 					for(int j = 0; j < 4; j++){
@@ -156,7 +169,7 @@ int main(){
 						break;	// game over
 				}
 			}
-			else if(e.type == ALLEGRO_EVENT_KEY_DOWN){
+			else if(e.type == ALLEGRO_EVENT_KEY_DOWN && !movementLock){
 				bool hit = false;
 				int hitCheck[16];
 				int count = 0;
@@ -258,6 +271,7 @@ int main(){
 							cur.line++;
 						break;
 					case ALLEGRO_KEY_SPACE:
+						/* instant drop */
 						do{
 							for(int i = 0; i < 4; i++){
 								for(int j = 0; j < 4; j++){
@@ -268,8 +282,13 @@ int main(){
 							if(!hit)
 								cur.line++;
 						}while(!hit);
+						/* to prevent moving or rotating after instant drop */
+						movementLock = true;
+						printf("lock on\n");
 						break;
 				}
+
+				predict = create_predict(cur, map);
 			}
 		}
 	}

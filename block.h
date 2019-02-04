@@ -21,6 +21,7 @@ typedef struct{
 }Block;
 
 Block create_block();
+Block create_predict(Block, bool[][10]);
 void set_color_scheme(ALLEGRO_COLOR*);
 void draw_block_bitmap(ALLEGRO_BITMAP*, Block, ALLEGRO_DISPLAY*);
 

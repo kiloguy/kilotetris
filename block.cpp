@@ -34,7 +34,7 @@ Block create_block(){
 
 void draw_block_bitmap(ALLEGRO_BITMAP* bitmap, Block c, ALLEGRO_DISPLAY* md){
 	al_set_target_bitmap(bitmap);
-	al_clear_to_color(al_map_rgb(0, 0, 0));
+	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
 	for(int i = 0; i < 4; i++){
 		for(int j = 0; j < 4; j++){
 			if(form[c.type][c.dir][i * 4 + j])

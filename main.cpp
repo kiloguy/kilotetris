@@ -45,7 +45,7 @@ int main(){
 	Block cur, next;
 	ALLEGRO_BITMAP* cur_bitmap = al_create_bitmap(80, 80);
 
-	ALLEGRO_DISPLAY* dis = al_create_display(200, 400);
+	ALLEGRO_DISPLAY* dis = al_create_display(360, 400);
 
 	ALLEGRO_TIMER* flip = al_create_timer(1.0 / 60.0);
 	ALLEGRO_TIMER* step = al_create_timer(1.0);
@@ -59,8 +59,9 @@ int main(){
 	al_start_timer(flip);
 	al_start_timer(step);
 
-	ALLEGRO_FONT* iosevka = al_load_ttf_font("iosevka-cc-semibold.ttf", 32, 0);
+	ALLEGRO_FONT* iosevka = al_load_ttf_font("iosevka-cc-semibold.ttf", 64, 0);
 	int score = 0;
+	char scoreString[1024] = "0";
 
 	cur = create_block();
 	next = create_block();
@@ -76,6 +77,12 @@ int main(){
 			else if(e.type == ALLEGRO_EVENT_TIMER && e.timer.source == flip){
 				al_clear_to_color(black);
 
+				/* draw background line */
+				for(int i = 0; i < 11; i++)
+					al_draw_line(20 * i, 0, 20 * i, 400, al_map_rgb(60, 60, 60), 2);
+				for(int j = 0; j < 21; j++)
+					al_draw_line(0, 20 * j, 200, 20 * j, al_map_rgb(60, 60, 60), 2);
+				
 				/* draw current block */
 				al_draw_bitmap(cur_bitmap, cur.col * 20, cur.line * 20, 0);
 
@@ -87,7 +94,8 @@ int main(){
 					}
 				}
 				/* draw score */
-				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 0, 0, 0, "%d", score);
+				sprintf(scoreString, "%d", score);
+				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka, scoreString) / 2, 300, 0, "%d", score);
 
 				al_flip_display();
 			}
@@ -136,6 +144,16 @@ int main(){
 					cur = next;
 					draw_block_bitmap(cur_bitmap, cur, dis);
 					next = create_block();
+					/* check if hit the top */
+					hit = false;
+					for(int i = 0; i < 4; i++){
+						for(int j = 0; j < 4; j++){
+							if(form[cur.type][cur.dir][i * 4 + j] && map[cur.line + i][cur.col + j])
+								hit = true;
+						}
+					}
+					if(hit)
+						break;	// game over
 				}
 			}
 			else if(e.type == ALLEGRO_EVENT_KEY_DOWN){
@@ -239,6 +257,18 @@ int main(){
 						if(!hit)
 							cur.line++;
 						break;
+					case ALLEGRO_KEY_SPACE:
+						do{
+							for(int i = 0; i < 4; i++){
+								for(int j = 0; j < 4; j++){
+									if(form[cur.type][cur.dir][i * 4 + j] && (map[cur.line + i + 1][cur.col + j] || cur.line + i + 1 >= 20))
+										hit = true;
+								}
+							}
+							if(!hit)
+								cur.line++;
+						}while(!hit);
+						break;
 				}
 			}
 		}
@@ -249,6 +279,7 @@ int main(){
 	al_destroy_event_queue(eq);
 	al_destroy_bitmap(cur_bitmap);
 	al_destroy_display(dis);
+	al_destroy_font(iosevka);
 	al_shutdown_font_addon();
 	al_shutdown_ttf_addon();
 	al_shutdown_primitives_addon();

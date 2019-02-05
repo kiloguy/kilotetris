@@ -60,3 +60,22 @@ void draw_block_bitmap(ALLEGRO_BITMAP* bitmap, Block c, ALLEGRO_DISPLAY* md){
 	}
 	al_set_target_backbuffer(md);
 }
+
+void move_block(Block* c, bool m[][10], int m_line, int m_col){
+	/* move block by m_line and m_col, can be positive or negative. If hit, won't move. */
+	bool hit = false;
+	for(int i = 0; i < 4; i++){
+		for(int j = 0; j < 4; j++){
+			if(form[c->type][c->dir][i * 4 + j] && (c->line + i + m_line >= 20 || c->col + j + m_col >= 10 || c->col + j + m_col < 0 || m[c->line + i + m_line][c->col + j + m_col])){
+				hit = true;
+				break;
+			}
+		}
+		if(hit)
+			break;
+	}
+	if(!hit){
+		c->line += m_line;
+		c->col += m_col;
+	}
+}

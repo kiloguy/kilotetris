@@ -44,6 +44,7 @@ int main(){
 
 	Block cur, next, predict;
 	ALLEGRO_BITMAP* cur_bitmap = al_create_bitmap(80, 80);
+	ALLEGRO_BITMAP* next_bitmap = al_create_bitmap(80, 80);
 
 	ALLEGRO_DISPLAY* dis = al_create_display(360, 400);
 
@@ -64,11 +65,20 @@ int main(){
 	char scoreString[1024] = "0";
 
 	bool movementLock = false;		// to prevent moving and rotating after instant drop
+	bool holding[3];				// left, down, right arrow key
+	for(int i = 0; i < 3; i++)
+		holding[i] = false;
+	ALLEGRO_TIMER* period[3];
+	for(int i = 0; i < 3; i++){
+		period[i] = al_create_timer(0.06);
+		al_register_event_source(eq, al_get_timer_event_source(period[i]));
+	}
 
 	cur = create_block();
 	predict = create_predict(cur, map);
 	next = create_block();
 	draw_block_bitmap(cur_bitmap, cur, dis);
+	draw_block_bitmap(next_bitmap, next, dis);
 
 	while(true){
 		ALLEGRO_EVENT e;
@@ -107,6 +117,9 @@ int main(){
 				/* draw score */
 				sprintf(scoreString, "%d", score);
 				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka, scoreString) / 2, 300, 0, "%d", score);
+				/* draw next block */
+				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka, "Next") / 2, 50, 0, "Next");
+				al_draw_bitmap(next_bitmap, 240, 150, 0);
 
 				al_flip_display();
 			}
@@ -157,6 +170,8 @@ int main(){
 					cur = next;
 					draw_block_bitmap(cur_bitmap, cur, dis);
 					next = create_block();
+					draw_block_bitmap(next_bitmap, next, dis);
+					predict = create_predict(cur, map);	
 					/* check if hit the top */
 					hit = false;
 					for(int i = 0; i < 4; i++){
@@ -239,36 +254,23 @@ int main(){
 						break;
 					case ALLEGRO_KEY_A:
 					case ALLEGRO_KEY_LEFT:
-						for(int i = 0; i < 4; i++){
-							for(int j = 0; j < 4; j++){
-								if(form[cur.type][cur.dir][i * 4 + j] && (cur.col + j - 1 < 0 || map[cur.line + i][cur.col + j - 1]))
-									hit = true;
-							}
-						}
-						if(!hit)
-							cur.col--;
+						holding[LEFT] = true;
+						al_set_timer_speed(period[LEFT], 0.3);
+						al_start_timer(period[LEFT]);
+						move_block(&cur, map, 0, -1);
 						break;
 					case ALLEGRO_KEY_D:
 					case ALLEGRO_KEY_RIGHT:
-						for(int i = 0; i < 4; i++){
-							for(int j = 0; j < 4; j++){
-								if(form[cur.type][cur.dir][i * 4 + j] && (cur.col + j + 1 >= 10 || map[cur.line + i][cur.col + j + 1]))
-									hit = true;
-							}
-						}
-						if(!hit)
-							cur.col++;
+						holding[RIGHT] = true;
+						al_set_timer_speed(period[RIGHT], 0.3);
+						al_start_timer(period[RIGHT]);
+						move_block(&cur, map, 0, 1);
 						break;
 					case ALLEGRO_KEY_S:
 					case ALLEGRO_KEY_DOWN:
-						for(int i = 0; i < 4; i++){
-							for(int j = 0; j < 4; j++){
-								if(form[cur.type][cur.dir][i * 4 + j] && (cur.line + i + 1 >= 20 || map[cur.line + i + 1][cur.col + j]))
-									hit = true;
-							}
-						}
-						if(!hit)
-							cur.line++;
+						holding[DOWN] = true;
+						al_start_timer(period[DOWN]);
+						move_block(&cur, map, 1, 0);
 						break;
 					case ALLEGRO_KEY_SPACE:
 						/* instant drop */
@@ -290,11 +292,43 @@ int main(){
 
 				predict = create_predict(cur, map);
 			}
+			else if(e.type == ALLEGRO_EVENT_KEY_UP){
+				switch(e.keyboard.keycode){
+					case ALLEGRO_KEY_LEFT:
+					case ALLEGRO_KEY_A:
+						holding[LEFT] = false;
+						al_stop_timer(period[LEFT]);
+						break;
+					case ALLEGRO_KEY_RIGHT:
+					case ALLEGRO_KEY_D:
+						holding[RIGHT] = false;
+						al_stop_timer(period[RIGHT]);
+						break;
+					case ALLEGRO_KEY_DOWN:
+					case ALLEGRO_KEY_S:
+						holding[DOWN] = false;
+						al_stop_timer(period[DOWN]);
+						break;
+				}
+			}
+			else if(e.type == ALLEGRO_EVENT_TIMER && (e.timer.source == period[LEFT] || e.timer.source == period[RIGHT] || e.timer.source == period[DOWN])){
+				if(al_get_timer_speed(e.timer.source) > 0.06)
+					al_set_timer_speed(e.timer.source, 0.06);
+				if(e.timer.source == period[LEFT])
+					move_block(&cur, map, 0, -1);
+				else if(e.timer.source == period[RIGHT])
+					move_block(&cur, map, 0, 1);
+				else
+					move_block(&cur, map, 1, 0);
+				predict = create_predict(cur, map);
+			}
 		}
 	}
 
 	al_destroy_timer(flip);
 	al_destroy_timer(step);
+	for(int i = 0; i < 3; i ++)
+		al_destroy_timer(period[i]);
 	al_destroy_event_queue(eq);
 	al_destroy_bitmap(cur_bitmap);
 	al_destroy_display(dis);

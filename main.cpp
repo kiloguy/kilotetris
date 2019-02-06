@@ -42,9 +42,10 @@ int main(){
 			map_color[i][j] = black;
 	}
 
-	Block cur, next, predict;
+	Block cur, next, hold, predict;
 	ALLEGRO_BITMAP* cur_bitmap = al_create_bitmap(80, 80);
 	ALLEGRO_BITMAP* next_bitmap = al_create_bitmap(80, 80);
+	ALLEGRO_BITMAP* hold_bitmap = al_create_bitmap(80, 80);
 
 	ALLEGRO_DISPLAY* dis = al_create_display(360, 400);
 
@@ -60,7 +61,8 @@ int main(){
 	al_start_timer(flip);
 	al_start_timer(step);
 
-	ALLEGRO_FONT* iosevka = al_load_ttf_font("iosevka-cc-semibold.ttf", 64, 0);
+	ALLEGRO_FONT* iosevka_large = al_load_ttf_font("iosevka-cc-semibold.ttf", 64, 0);
+	ALLEGRO_FONT* iosevka = al_load_ttf_font("iosevka-cc-semibold.ttf", 28, 0);
 	int score = 0;
 	char scoreString[1024] = "0";
 
@@ -79,6 +81,8 @@ int main(){
 	next = create_block();
 	draw_block_bitmap(cur_bitmap, cur, dis);
 	draw_block_bitmap(next_bitmap, next, dis);
+	hold.type = NON;
+	draw_block_bitmap(hold_bitmap, hold, dis);
 
 	while(true){
 		ALLEGRO_EVENT e;
@@ -116,10 +120,14 @@ int main(){
 				}
 				/* draw score */
 				sprintf(scoreString, "%d", score);
-				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka, scoreString) / 2, 300, 0, "%d", score);
+				al_draw_textf(iosevka_large, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka_large, scoreString) / 2, 300, 0, "%d", score);
 				/* draw next block */
-				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka, "Next") / 2, 50, 0, "Next");
-				al_draw_bitmap(next_bitmap, 240, 150, 0);
+				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka, "Next") / 2, 15, 0, "Next");
+				al_draw_bitmap(next_bitmap, 240, 60, 0);
+				/* draw hold block */
+				al_draw_textf(iosevka, al_map_rgb(255, 255, 255), 280 - al_get_text_width(iosevka, "Hold") / 2, 150, 0, "Hold");
+				al_draw_bitmap(hold_bitmap, 240, 195, 0);
+				/* draw step timer */
 
 				al_flip_display();
 			}
@@ -288,6 +296,22 @@ int main(){
 						movementLock = true;
 						printf("lock on\n");
 						break;
+					case ALLEGRO_KEY_C:
+						if(hold.type == NON){
+							hold = cur;
+							cur = next;
+							next = create_block();
+							draw_block_bitmap(next_bitmap, next, dis);
+						}
+						else{
+							Block temp = cur;
+							cur = hold;
+							hold = temp;
+						}
+						cur.line = 0;
+						cur.col = 3;
+						draw_block_bitmap(cur_bitmap, cur, dis);
+						draw_block_bitmap(hold_bitmap, hold, dis);
 				}
 
 				predict = create_predict(cur, map);
@@ -311,7 +335,7 @@ int main(){
 						break;
 				}
 			}
-			else if(e.type == ALLEGRO_EVENT_TIMER && (e.timer.source == period[LEFT] || e.timer.source == period[RIGHT] || e.timer.source == period[DOWN])){
+			else if(e.type == ALLEGRO_EVENT_TIMER && (e.timer.source == period[LEFT] || e.timer.source == period[RIGHT] || e.timer.source == period[DOWN]) && !movementLock){
 				if(al_get_timer_speed(e.timer.source) > 0.06)
 					al_set_timer_speed(e.timer.source, 0.06);
 				if(e.timer.source == period[LEFT])
@@ -333,6 +357,7 @@ int main(){
 	al_destroy_bitmap(cur_bitmap);
 	al_destroy_display(dis);
 	al_destroy_font(iosevka);
+	al_destroy_font(iosevka_large);
 	al_shutdown_font_addon();
 	al_shutdown_ttf_addon();
 	al_shutdown_primitives_addon();

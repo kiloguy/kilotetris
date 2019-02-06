@@ -52,10 +52,12 @@ Block create_predict(Block c, bool m[][10]){
 void draw_block_bitmap(ALLEGRO_BITMAP* bitmap, Block c, ALLEGRO_DISPLAY* md){
 	al_set_target_bitmap(bitmap);
 	al_clear_to_color(al_map_rgba(0, 0, 0, 0));
-	for(int i = 0; i < 4; i++){
-		for(int j = 0; j < 4; j++){
-			if(form[c.type][c.dir][i * 4 + j])
-				al_draw_filled_rectangle(j * 20, i * 20, j * 20 + 20, i * 20 + 20, color_scheme[c.type]);
+	if(c.type != NON){
+		for(int i = 0; i < 4; i++){
+			for(int j = 0; j < 4; j++){
+				if(form[c.type][c.dir][i * 4 + j])
+					al_draw_filled_rectangle(j * 20, i * 20, j * 20 + 20, i * 20 + 20, color_scheme[c.type]);
+			}
 		}
 	}
 	al_set_target_backbuffer(md);

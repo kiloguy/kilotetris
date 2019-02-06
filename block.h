@@ -8,6 +8,7 @@
 #define	S	4
 #define	T	5
 #define	Z	6
+#define	NON	7	// use for hold block
 #define	RIGHT	0
 #define	DOWN	1
 #define	LEFT	2
